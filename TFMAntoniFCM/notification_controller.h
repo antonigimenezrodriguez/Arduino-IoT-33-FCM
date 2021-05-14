@@ -10,40 +10,105 @@
 #define HUM_TYPE 2
 #define PHONE_ID_EMULADOR "eoruK0bDGPM:APA91bGiLwQp-mB6SA_Rgb38piHgW7CdfqVV6qf14Y3RQeH-LN-Qpg6hPKCfW3ezvSS0zkDGgCOZFMbAHSC_4TFslv3UbXuQffaQ7Bq1Ub8nMPNlpRf_c9USpVRenqII0AyE5zG77rtx"
 
+#define WIFI_SSID "YOUR_WIFI_AP"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+
+
 WiFiSSLClient client;
 void send_notification(uint16_t, int, uint8_t);
+int getQuantityUsers();
+String getTokenUser(int);
 
 void send_notification(uint16_t val, int type, uint8_t isAuto) {
-  String title, body;
-  title = "Limite de CO2 sobrepasado";
-  body = "Valor de CO2: " + String(val) + " ppm.";
 
-  Serial.println("\tEnviando notificacion por sobrepasar limites");
-  DynamicJsonDocument params(1024);
-  params["to"] = PHONE_ID_EMULADOR;
-  params["notification"]["title"] = title;
-  params["notification"]["body"] = body;
-  params["data"]["tipo"] = type;
-  params["data"]["value"] = val;
-  params["data"]["auto"] = isAuto;
-  params["data"]["click_action"] = "FLUTTER_NOTIFICATION_CLICK";
+  int quantityUsers = getQuantityUsers();
+  delay(100);
+  Serial.print("Users: ");
+  Serial.println(quantityUsers);
+  delay(100);
 
-  String data;
-  serializeJson(params, data);
+  for (int i = 1; i <= quantityUsers ; i++) {
+    String token = getTokenUser(i);
+    Serial.print("Token usuario ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.print(token);
 
-  if (client.connect(FCM_HOST, 443)) {
-    Serial.println("\tConectando con el servidor...");
-    client.println("POST /fcm/send HTTP/1.1");
-    client.println("Host: fcm.googleapis.com");
-    client.println("Authorization: key=" + String(FCM_AUTH));
-    client.println("Content-Type: application/json");
-    client.print("Content-Length: ");
-    client.println(data.length());
-    client.print("\n");
-    client.print(data);
+    String title, body;
+    title = "Limite de CO2 sobrepasado";
+    body = "Valor de CO2: " + String(val) + " ppm.";
+
+    Serial.println("\tEnviando notificacion por sobrepasar limites");
+    DynamicJsonDocument params(1024);
+    params["to"] = token;
+    params["notification"]["title"] = title;
+    params["notification"]["body"] = body;
+    params["data"]["tipo"] = type;
+    params["data"]["value"] = val;
+    params["data"]["auto"] = isAuto;
+    params["data"]["click_action"] = "FLUTTER_NOTIFICATION_CLICK";
+
+    String data;
+    serializeJson(params, data);
+
+    if (client.connect(FCM_HOST, 443)) {
+      Serial.println("\tConectando con el servidor...");
+      client.println("POST /fcm/send HTTP/1.1");
+      client.println("Host: fcm.googleapis.com");
+      client.println("Authorization: key=" + String(FCM_AUTH));
+      client.println("Content-Type: application/json");
+      client.print("Content-Length: ");
+      client.println(data.length());
+      client.print("\n");
+      client.print(data);
+    }
+    Serial.println("\tDatos enviados");
+    client.flush();
+    client.stop();
+
+
   }
-  Serial.println("\tDatos enviados");
-  client.flush();
-  client.stop();
-  
+
+
+
+}
+
+int getQuantityUsers() {
+  String path = "/users/quantity";
+  if (Firebase.getInt(firebaseData, path))
+  {
+    if (firebaseData.dataType() == "int")
+      return firebaseData.intData();
+    else if (firebaseData.dataType() == "float")
+      return firebaseData.floatData();
+  }
+  else
+  {
+    Serial.println("----------Can't get data--------");
+    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("--------------------------------");
+    Serial.println();
+  }
+}
+
+String getTokenUser(int i) {
+  String route = "";
+  route = "/users/" + String(i) + "/token";
+  Serial.print("Ruta token usuario 1: ");
+  Serial.println(route);
+  if (Firebase.getString(firebaseData, route))
+  {
+    if (firebaseData.dataType() == "string")
+      return firebaseData.stringData();
+    else if (firebaseData.dataType() == "json")
+      return firebaseData.jsonData();
+  }
+  else
+  {
+    Serial.println("----------Can't get data--------");
+    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("--------------------------------");
+    Serial.println();
+  }
 }
