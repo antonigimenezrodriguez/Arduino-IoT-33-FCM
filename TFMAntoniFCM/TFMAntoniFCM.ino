@@ -6,6 +6,7 @@
 #include "garden_params.h"
 #include "firebase_params.h"
 #include "MemoryFree.h"
+#include "notification_controller.h"
 
 DynamicJsonDocument doc(1024);
 //int ledPin = 13;
@@ -62,6 +63,10 @@ bool SendJSON(String recv){
        posIni = posFin;
        posFin = posFin + LON_VALUE;
        int value = GetInteger(recv.substring(posIni,posFin));
+       //TODO: Comprobar valor y enviar notificación
+       if(value > 100){
+        send_notification(value, 1, 1);
+       }
        slot.add(value);
        Serial.println(value);
        charsPassed += LON_VALUE;
