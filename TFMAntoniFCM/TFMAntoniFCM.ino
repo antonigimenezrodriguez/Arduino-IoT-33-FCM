@@ -65,7 +65,7 @@ bool SendJSON(String recv){
        int value = GetInteger(recv.substring(posIni,posFin));
        //TODO: Comprobar valor y enviar notificación
        if(value > 100){
-        send_notification(value, 1, 1);
+        send_notification(value, 1, 1, "sensor");
        }
        slot.add(value);
        Serial.println(value);
