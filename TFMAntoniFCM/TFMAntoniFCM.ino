@@ -1,38 +1,101 @@
+#include <SPI.h>
 #include <WiFiNINA.h>
-#include <FirebaseArduino.h>
+#include "ArduinoJson.h"
+#include "Firebase_Arduino_WiFiNINA.h"
+#include "receive_params.h"
+#include "garden_params.h"
+#include "firebase_params.h"
+#include "MemoryFree.h"
+#include "notification_controller.h"
 
-
-char ssid[] = "TP-Link_0846";        // your network SSID (name)
-char pass[] = "24398006";    // your network password (use for WPA, or use as key for WEP)
-WiFiClient wifiClient;
-
-
-#define FIREBASE_HOST "example.firebaseio.com" 
-#define FIREBASE_AUTH "token_or_secret" 
-
-
+DynamicJsonDocument doc(1024);
+//int ledPin = 13;
+  
 void setup() {
-  // put your setup code here, to run once:
-
+  Serial.begin(9600);
   while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
+    ; 
   }
-
-  // attempt to connect to Wifi network:
-  Serial.print("Attempting to connect to WPA SSID: ");
-  Serial.println(ssid);
-  while (WiFi.begin(ssid, pass) != WL_CONNECTED) {
-    // failed, retry
-    Serial.print(".");
-    delay(5000);
-  }
-
-  Serial.println("You're connected to the network");
-  Serial.println();
-
+   StartFirebase();
+   doc.clear();
+   pinMode (LED_BUILTIN, OUTPUT);
+  //digitalWrite (ledPin, LOW); //on board blinking LED (orange) to check LoRa connectivity
+   Serial.println("All OK.");
+  
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  String recv = "";
 
+  //digitalWrite (LED_BUILTIN, HIGH); 
+  recv = "0309FFFC003C001E000A03000106000A04000A";//Test without RAK reception: Sent number FFFC
+
+  bool sent = SendJSON(recv);
+        
+  //digitalWrite (LED_BUILTIN, LOW); 
+  delay(2000);
+}
+
+
+bool SendJSON(String recv){
+
+  JsonObject dataSlot;
+  JsonArray slot; 
+
+  int id_node = GetInteger(recv.substring(INI_NODE,FIN_NODE));
+  doc["ID_Node"]  =  id_node; 
+  doc["timestamp"] = serialized("{\".sv\":\"timestamp\"}");
+  
+  int index = 0;
+  int charsPassed = 0;
+  int type = 255;
+  while(recv.length() > (charsPassed +4)){   
+    String str = "DATASLOT_";
+    str.concat(index++);
+    int posIni = INI_DATA + charsPassed; 
+    int posFin = posIni + LON_TYPE;
+    type = GetInteger(recv.substring(posIni,posFin)); 
+    charsPassed += LON_TYPE;
+    dataSlot = doc.createNestedObject(str);
+    dataSlot["Type"] = GetInteger(recv.substring(posIni,posFin));
+    slot = dataSlot.createNestedArray("Value");
+    for(int i = 0; i<quantityOfVal[type]; i++){
+       posIni = posFin;
+       posFin = posFin + LON_VALUE;
+       int value = GetInteger(recv.substring(posIni,posFin));
+       //TODO: Comprobar valor y enviar notificación
+       if(value > 100){
+        send_notification(value, 1, 1);
+       }
+       slot.add(value);
+       Serial.println(value);
+       charsPassed += LON_VALUE;
+    }    
+  }
+  bool ok = false;
+  String JsonSerialized;
+  serializeJson(doc, JsonSerialized);
+  
+  /*******************************************************************/
+  /**** Some packages are erroneously received; implement filtering rules!! ***/
+  /******************************************************************/
+  
+  if ((type < 11) && ((id_node > 0) && (id_node < 11)))
+  {
+    String route = "";
+    route = "/Gardens/"+GARDEN+"/sensorData/"+PLOTLIST[id_node]+"/Data/";
+    Serial.println(SendFirebase(route, JsonSerialized));
+    delay(100);
+    ok = true;
+  }
+  
+  doc.clear();
+  return ok;
+}
+
+
+int GetInteger(String from){
+   char FIELDCHAR[5];
+   from.toCharArray(FIELDCHAR, 5);
+   return strtol(FIELDCHAR, NULL, 16);
 }
