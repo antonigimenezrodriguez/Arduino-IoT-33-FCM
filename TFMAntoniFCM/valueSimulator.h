@@ -5,7 +5,7 @@ void getRandomValue(float &value, String &sensorName, int &sensor) {
   sensorName = sensors[sensor];
   switch (sensor) {
     case 0:
-      value = random(300, 900);
+      value = random(450, 750);
       break;
     case 1:
       value = random(0, 100);
@@ -14,7 +14,7 @@ void getRandomValue(float &value, String &sensorName, int &sensor) {
       value = random(0, 100);
       break;
     case 3:
-      value = random(-10, 50);
+      value = random(1, 50);
       break;
     default:
       break;

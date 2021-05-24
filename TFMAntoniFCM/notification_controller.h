@@ -25,11 +25,11 @@ void send_notification(uint16_t val, int type, uint8_t isAuto, String sensorName
     Serial.print("Token usuario ");
     Serial.print(i);
     Serial.print(": ");
-    Serial.print(token);
+    Serial.println(token);
 
     String title, body;
-    title = "Limite de " + sensorName + "sobrepasado";
-    body = "Valor de " + sensorName + String(val);
+    title = "Limite de " + sensorName + " sobrepasado";
+    body = "Valor de " + sensorName + " " + String(val);
 
     Serial.println("\tEnviando notificacion por sobrepasar limites");
     DynamicJsonDocument params(1024);
@@ -59,7 +59,7 @@ void send_notification(uint16_t val, int type, uint8_t isAuto, String sensorName
     client.flush();
     client.stop();
 
-
+  delay(2000);
   }
 
 

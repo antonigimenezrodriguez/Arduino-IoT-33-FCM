@@ -115,7 +115,11 @@ void generateValuesAndCheckLimits() {
   Serial.print(" Value: ");
   Serial.print(valor);
   Serial.print(" Out of limits: ");
-  Serial.println(outOfLimit);
+  if (outOfLimit)
+    Serial.println("true");
+  else
+    Serial.println("false");
+
 
   if (outOfLimit) {
     send_notification(valor, sensor, 1, sensorName);
